@@ -223,6 +223,56 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
 @media (max-width: 700px) { .intel-grid { grid-template-columns: 1fr; } }
 .intel-grid .insider-panel, .intel-grid .news-panel { margin-bottom: 0; }
 
+/* Pattern panel */
+.pattern-panel {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; margin-bottom: 20px; animation: fadeIn 0.4s ease;
+}
+.pattern-panel h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 14px; }
+.pattern-name { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.pattern-bias {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  border-radius: 20px; font-size: 13px; font-weight: 700; margin-bottom: 12px;
+}
+.pattern-bias.bullish { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.pattern-bias.bearish { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+.pattern-bias.neutral { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.pattern-conf { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.pattern-conf-ring {
+  width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 18px; font-weight: 800;
+  border: 3px solid var(--border); flex-shrink: 0;
+}
+.pattern-conf-ring.high { border-color: var(--green); color: var(--green); }
+.pattern-conf-ring.mid { border-color: var(--yellow); color: var(--yellow); }
+.pattern-conf-ring.low { border-color: var(--red); color: var(--red); }
+.pattern-explain { font-size: 13px; line-height: 1.6; color: #94a3b8; }
+.pattern-factors { margin-top: 10px; }
+
+/* Backtest module */
+.bt-section { margin-top: 24px; animation: fadeIn 0.4s ease; }
+.bt-section h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 14px; }
+.bt-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin-bottom: 16px;
+}
+.bt-stat {
+  background: var(--surface); border-radius: 8px; padding: 12px; text-align: center;
+}
+.bt-stat .bt-label { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.bt-stat .bt-val { font-size: 18px; font-weight: 700; }
+.bt-stat .bt-val.pos { color: var(--green); }
+.bt-stat .bt-val.neg { color: var(--red); }
+.bt-equity { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.bt-log { max-height: 300px; overflow-y: auto; }
+.bt-log table { font-size: 11px; }
+.bt-log td, .bt-log th { padding: 5px 8px; }
+.bt-log .win { color: var(--green); }
+.bt-log .loss { color: var(--red); }
+.bt-none { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
+.bt-running { text-align: center; padding: 20px; color: var(--muted); }
+.bt-running .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 8px; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
@@ -233,7 +283,7 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
 
 <div class="header">
   <h1><span>📊</span>Trading Decision Dashboard</h1>
-  <span class="header-badge">v3.0 · Unified Decision Engine</span>
+  <span class="header-badge">v4.0 · Pattern Recognition</span>
 </div>
 
 <div class="app">
@@ -284,6 +334,24 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
     <div class="divider"></div>
     <button class="btn btn-primary" id="analyze-btn" onclick="analyze()">Generate Trade Setup</button>
     <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+
+    <div class="divider"></div>
+    <h2>Backtesting</h2>
+    <div class="form-group">
+      <label for="bt-balance">Starting Balance ($)</label>
+      <input type="number" id="bt-balance" value="10000" min="100" step="100">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="bt-risk">Risk %</label>
+        <input type="number" id="bt-risk" value="1.5" min="0.1" max="5" step="0.1">
+      </div>
+      <div class="form-group">
+        <label for="bt-candles">Candles</label>
+        <input type="number" id="bt-candles" value="200" min="50" max="500" step="50">
+      </div>
+    </div>
+    <button class="btn btn-primary" id="bt-btn" onclick="runBacktest()" style="background:var(--orange)">Run Backtest</button>
   </aside>
 
   <!-- Main -->
@@ -298,6 +366,7 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
     </div>
     <div id="error" style="display:none;"></div>
     <div id="results" style="display:none;"></div>
+    <div id="bt-results" style="display:none;"></div>
   </main>
 </div>
 
@@ -513,6 +582,273 @@ function detectBreakout(data, resistances, supports) {
     }
   }
   return null;
+}
+
+// ─── Pattern Recognition Engine ───
+function detectPatterns(data, supports, resistances) {
+  if (data.length < 30) return { name: 'No Clear Pattern', bias: 'Neutral', confidence: 0, explanation: 'Not enough data to detect patterns.', zone: null };
+
+  const candidates = [];
+
+  // 1. Dead Cat Bounce
+  candidates.push(detectDeadCatBounce(data));
+  // 2. Breakout
+  candidates.push(detectBreakoutPattern(data, supports, resistances));
+  // 3. Double Bottom
+  candidates.push(detectDoubleBottom(data));
+  // 4. Double Top
+  candidates.push(detectDoubleTop(data));
+  // 5. Consolidation
+  candidates.push(detectConsolidation(data));
+
+  // Pick highest confidence pattern
+  const valid = candidates.filter(p => p && p.confidence > 0);
+  if (!valid.length) return { name: 'No Clear Pattern', bias: 'Neutral', confidence: 0, explanation: 'No recognizable pattern detected in recent price action.', zone: null };
+
+  valid.sort((a, b) => b.confidence - a.confidence);
+  return valid[0];
+}
+
+function detectDeadCatBounce(data) {
+  // Look at last 30 bars: sharp drop, weak bounce, continuation down
+  const window = data.slice(-30);
+  if (window.length < 20) return null;
+
+  // Find the sharpest drop in the window
+  let maxDrop = 0, dropStart = 0, dropEnd = 0;
+  for (let i = 0; i < window.length - 5; i++) {
+    for (let j = i + 3; j < Math.min(i + 12, window.length); j++) {
+      const drop = (window[i].high - window[j].low) / window[i].high;
+      if (drop > maxDrop) { maxDrop = drop; dropStart = i; dropEnd = j; }
+    }
+  }
+
+  if (maxDrop < 0.05) return null; // Need at least 5% drop
+
+  // Check for bounce after drop
+  const afterDrop = window.slice(dropEnd);
+  if (afterDrop.length < 3) return null;
+
+  const dropLow = window[dropEnd].low;
+  const dropHigh = window[dropStart].high;
+  const dropRange = dropHigh - dropLow;
+
+  // Find bounce high
+  let bounceHigh = 0;
+  for (const bar of afterDrop.slice(0, 8)) {
+    if (bar.high > bounceHigh) bounceHigh = bar.high;
+  }
+
+  const retracement = (bounceHigh - dropLow) / dropRange;
+  if (retracement >= 0.5) return null; // Bounce too strong — not a dead cat
+
+  // Volume should decrease during bounce
+  const dropVol = window.slice(dropStart, dropEnd + 1).reduce((s, b) => s + b.volume, 0) / (dropEnd - dropStart + 1);
+  const bounceVol = afterDrop.slice(0, 5).reduce((s, b) => s + b.volume, 0) / Math.min(5, afterDrop.length);
+  const volDecline = bounceVol < dropVol;
+
+  // Check if price continued down after bounce
+  const lastPrice = data[data.length - 1].close;
+  const continuedDown = lastPrice < bounceHigh;
+
+  let confidence = 3;
+  if (maxDrop >= 0.10) confidence += 2; else if (maxDrop >= 0.07) confidence += 1;
+  if (retracement < 0.3) confidence += 2; else if (retracement < 0.4) confidence += 1;
+  if (volDecline) confidence += 1;
+  if (continuedDown) confidence += 1;
+  confidence = Math.min(10, confidence);
+
+  if (confidence < 4) return null;
+
+  return {
+    name: 'Dead Cat Bounce', bias: 'Bearish', confidence,
+    explanation: `Sharp ${(maxDrop * 100).toFixed(1)}% drop followed by a weak ${(retracement * 100).toFixed(0)}% retracement${volDecline ? ' on declining volume' : ''}. Suggests continued downside.`,
+    zone: { type: 'deadcat', startIdx: data.length - 30 + dropStart, endIdx: data.length - 1, low: dropLow, high: dropHigh, bounceHigh },
+    factors: { 'Drop Size': `${(maxDrop*100).toFixed(1)}%`, 'Retracement': `${(retracement*100).toFixed(0)}%`, 'Volume Decline': volDecline ? 'Yes' : 'No' },
+  };
+}
+
+function detectBreakoutPattern(data, supports, resistances) {
+  if (data.length < 5) return null;
+  const last = data[data.length - 1], prev = data[data.length - 2], prev2 = data[data.length - 3];
+
+  // Average volume for comparison
+  const avgVol = data.slice(-20).reduce((s, b) => s + b.volume, 0) / 20;
+  const volSpike = last.volume > avgVol * 1.5;
+
+  // Breakout above resistance
+  for (const r of resistances) {
+    if (prev2.close < r.level && prev.close < r.level && last.close > r.level && last.close > last.open) {
+      let confidence = 4;
+      if (volSpike) confidence += 3;
+      if (last.close > r.level * 1.005) confidence += 1; // Clear break
+      if (prev.close > prev.open) confidence += 1; // Prior bar also bullish
+      confidence = Math.min(10, confidence);
+      return {
+        name: 'Breakout', bias: 'Bullish', confidence,
+        explanation: `Price broke above resistance at $${r.level.toFixed(2)}${volSpike ? ' with a volume spike confirming the move' : ''}. Bullish continuation likely.`,
+        zone: { type: 'breakout', level: r.level, startIdx: data.length - 5, endIdx: data.length - 1 },
+        factors: { 'Level': `$${r.level.toFixed(2)}`, 'Volume Spike': volSpike ? 'Yes' : 'No', 'Clear Break': last.close > r.level * 1.005 ? 'Yes' : 'No' },
+      };
+    }
+  }
+
+  // Breakdown below support
+  for (const s of [...supports].reverse()) {
+    if (prev2.close > s.level && prev.close > s.level && last.close < s.level && last.close < last.open) {
+      let confidence = 4;
+      if (volSpike) confidence += 3;
+      if (last.close < s.level * 0.995) confidence += 1;
+      if (prev.close < prev.open) confidence += 1;
+      confidence = Math.min(10, confidence);
+      return {
+        name: 'Breakdown', bias: 'Bearish', confidence,
+        explanation: `Price broke below support at $${s.level.toFixed(2)}${volSpike ? ' with a volume spike confirming the move' : ''}. Bearish continuation likely.`,
+        zone: { type: 'breakdown', level: s.level, startIdx: data.length - 5, endIdx: data.length - 1 },
+        factors: { 'Level': `$${s.level.toFixed(2)}`, 'Volume Spike': volSpike ? 'Yes' : 'No', 'Clear Break': last.close < s.level * 0.995 ? 'Yes' : 'No' },
+      };
+    }
+  }
+  return null;
+}
+
+function detectDoubleBottom(data) {
+  // Scan last 60 bars for two similar lows
+  const window = data.slice(-60);
+  if (window.length < 20) return null;
+
+  const lows = [];
+  for (let i = 3; i < window.length - 3; i++) {
+    let isLow = true;
+    for (let j = i - 3; j <= i + 3; j++) {
+      if (window[j].low < window[i].low) { isLow = false; break; }
+    }
+    if (isLow) lows.push({ idx: i, price: window[i].low });
+  }
+
+  if (lows.length < 2) return null;
+
+  // Check last two significant lows
+  for (let i = lows.length - 1; i >= 1; i--) {
+    const l2 = lows[i], l1 = lows[i - 1];
+    if (l2.idx - l1.idx < 5) continue; // Too close
+    const diff = Math.abs(l2.price - l1.price) / l1.price;
+    if (diff > 0.02) continue; // Lows not similar enough
+
+    // Check for bounce between the two lows
+    let midHigh = 0;
+    for (let j = l1.idx; j <= l2.idx; j++) {
+      if (window[j].high > midHigh) midHigh = window[j].high;
+    }
+    const bounceSize = (midHigh - l1.price) / l1.price;
+    if (bounceSize < 0.02) continue; // No meaningful bounce between
+
+    // Check if price is now above the second low
+    const lastPrice = data[data.length - 1].close;
+    const aboveSecondLow = lastPrice > l2.price;
+
+    let confidence = 4;
+    if (diff < 0.01) confidence += 2; else confidence += 1;
+    if (bounceSize > 0.05) confidence += 1;
+    if (aboveSecondLow) confidence += 2;
+    confidence = Math.min(10, confidence);
+
+    if (confidence < 4) continue;
+
+    const avgLow = (l1.price + l2.price) / 2;
+    return {
+      name: 'Double Bottom', bias: 'Bullish', confidence,
+      explanation: `Two similar lows near $${avgLow.toFixed(2)} with a ${(bounceSize*100).toFixed(1)}% bounce between them. Classic reversal pattern suggesting upside.`,
+      zone: { type: 'double_bottom', startIdx: data.length - 60 + l1.idx, endIdx: data.length - 60 + l2.idx, low: avgLow, neckline: midHigh },
+      factors: { 'Low Similarity': `${(diff*100).toFixed(2)}%`, 'Bounce': `${(bounceSize*100).toFixed(1)}%`, 'Price Above': aboveSecondLow ? 'Yes' : 'No' },
+    };
+  }
+  return null;
+}
+
+function detectDoubleTop(data) {
+  const window = data.slice(-60);
+  if (window.length < 20) return null;
+
+  const highs = [];
+  for (let i = 3; i < window.length - 3; i++) {
+    let isHigh = true;
+    for (let j = i - 3; j <= i + 3; j++) {
+      if (window[j].high > window[i].high) { isHigh = false; break; }
+    }
+    if (isHigh) highs.push({ idx: i, price: window[i].high });
+  }
+
+  if (highs.length < 2) return null;
+
+  for (let i = highs.length - 1; i >= 1; i--) {
+    const h2 = highs[i], h1 = highs[i - 1];
+    if (h2.idx - h1.idx < 5) continue;
+    const diff = Math.abs(h2.price - h1.price) / h1.price;
+    if (diff > 0.02) continue;
+
+    let midLow = Infinity;
+    for (let j = h1.idx; j <= h2.idx; j++) {
+      if (window[j].low < midLow) midLow = window[j].low;
+    }
+    const dipSize = (h1.price - midLow) / h1.price;
+    if (dipSize < 0.02) continue;
+
+    const lastPrice = data[data.length - 1].close;
+    const belowSecondHigh = lastPrice < h2.price;
+
+    let confidence = 4;
+    if (diff < 0.01) confidence += 2; else confidence += 1;
+    if (dipSize > 0.05) confidence += 1;
+    if (belowSecondHigh) confidence += 2;
+    confidence = Math.min(10, confidence);
+
+    if (confidence < 4) continue;
+
+    const avgHigh = (h1.price + h2.price) / 2;
+    return {
+      name: 'Double Top', bias: 'Bearish', confidence,
+      explanation: `Two similar highs near $${avgHigh.toFixed(2)} with a ${(dipSize*100).toFixed(1)}% dip between them. Classic reversal pattern suggesting downside.`,
+      zone: { type: 'double_top', startIdx: data.length - 60 + h1.idx, endIdx: data.length - 60 + h2.idx, high: avgHigh, neckline: midLow },
+      factors: { 'High Similarity': `${(diff*100).toFixed(2)}%`, 'Dip': `${(dipSize*100).toFixed(1)}%`, 'Price Below': belowSecondHigh ? 'Yes' : 'No' },
+    };
+  }
+  return null;
+}
+
+function detectConsolidation(data) {
+  // Check last 15 bars for tight range
+  const window = data.slice(-15);
+  if (window.length < 10) return null;
+
+  let highest = -Infinity, lowest = Infinity;
+  for (const bar of window) {
+    if (bar.high > highest) highest = bar.high;
+    if (bar.low < lowest) lowest = bar.low;
+  }
+
+  const range = (highest - lowest) / lowest;
+  if (range > 0.05) return null; // Not tight enough
+
+  // Check volume is declining (low energy)
+  const firstHalfVol = window.slice(0, 7).reduce((s, b) => s + b.volume, 0) / 7;
+  const secondHalfVol = window.slice(7).reduce((s, b) => s + b.volume, 0) / (window.length - 7);
+  const volDeclining = secondHalfVol < firstHalfVol * 0.9;
+
+  let confidence = 3;
+  if (range < 0.02) confidence += 3; else if (range < 0.03) confidence += 2; else confidence += 1;
+  if (volDeclining) confidence += 2;
+  confidence = Math.min(10, confidence);
+
+  if (confidence < 4) return null;
+
+  const midPrice = (highest + lowest) / 2;
+  return {
+    name: 'Consolidation', bias: 'Neutral', confidence,
+    explanation: `Price is moving sideways in a ${(range*100).toFixed(1)}% range around $${midPrice.toFixed(2)}${volDeclining ? ' with declining volume' : ''}. Expect a breakout soon — direction unclear.`,
+    zone: { type: 'consolidation', startIdx: data.length - 15, endIdx: data.length - 1, high: highest, low: lowest },
+    factors: { 'Range': `${(range*100).toFixed(1)}%`, 'Volume Declining': volDeclining ? 'Yes' : 'No' },
+  };
 }
 
 // ─── Insider Trading (SEC EDGAR) ───
@@ -749,39 +1085,46 @@ function analyzeNewsSentiment(data) {
 }
 
 // ─── Unified Decision Engine ───
-function makeUnifiedDecision(plan, insiderSentiment, newsSentiment) {
-  // Inputs:
-  //   plan.score (0-10 setup quality), plan.direction (BUY/SELL/null)
-  //   insiderSentiment.sentiment (Bullish/Neutral/Bearish)
-  //   newsSentiment.sentiment (Bullish/Neutral/Bearish)
-
+function makeUnifiedDecision(plan, insiderSentiment, newsSentiment, pattern) {
   const setupScore = plan.score;
   const direction = plan.direction;
   const insider = insiderSentiment.sentiment;
   const news = newsSentiment.sentiment;
+  const patBias = pattern.bias; // Bullish / Bearish / Neutral
 
   // Start with base confidence from setup score (max 4 points)
   let confidence = Math.min(Math.round(setupScore * 0.4), 4);
 
-  // News alignment (max 3 points)
+  // News alignment (max 2 points)
   let newsPoints = 0;
-  if (direction === 'BUY' && news === 'Bullish') newsPoints = 3;
+  if (direction === 'BUY' && news === 'Bullish') newsPoints = 2;
   else if (direction === 'BUY' && news === 'Neutral') newsPoints = 1;
   else if (direction === 'BUY' && news === 'Bearish') newsPoints = -1;
-  else if (direction === 'SELL' && news === 'Bearish') newsPoints = 3;
+  else if (direction === 'SELL' && news === 'Bearish') newsPoints = 2;
   else if (direction === 'SELL' && news === 'Neutral') newsPoints = 1;
   else if (direction === 'SELL' && news === 'Bullish') newsPoints = -1;
   confidence += newsPoints;
 
-  // Insider alignment (max 3 points)
+  // Insider alignment (max 2 points)
   let insiderPoints = 0;
-  if (direction === 'BUY' && insider === 'Bullish') insiderPoints = 3;
+  if (direction === 'BUY' && insider === 'Bullish') insiderPoints = 2;
   else if (direction === 'BUY' && insider === 'Neutral') insiderPoints = 1;
   else if (direction === 'BUY' && insider === 'Bearish') insiderPoints = -1;
-  else if (direction === 'SELL' && insider === 'Bearish') insiderPoints = 3;
+  else if (direction === 'SELL' && insider === 'Bearish') insiderPoints = 2;
   else if (direction === 'SELL' && insider === 'Neutral') insiderPoints = 1;
   else if (direction === 'SELL' && insider === 'Bullish') insiderPoints = -1;
   confidence += insiderPoints;
+
+  // Pattern alignment (max 2 points)
+  let patternPoints = 0;
+  if (pattern.confidence >= 5) {
+    if (direction === 'BUY' && patBias === 'Bullish') patternPoints = 2;
+    else if (direction === 'SELL' && patBias === 'Bearish') patternPoints = 2;
+    else if (direction === 'BUY' && patBias === 'Bearish') patternPoints = -2;
+    else if (direction === 'SELL' && patBias === 'Bullish') patternPoints = -2;
+    else if (patBias === 'Neutral') patternPoints = 0;
+  }
+  confidence += patternPoints;
 
   // Clamp to 1-10
   confidence = Math.max(1, Math.min(10, confidence));
@@ -789,19 +1132,21 @@ function makeUnifiedDecision(plan, insiderSentiment, newsSentiment) {
   // Decision rules
   let action, explanation;
 
-  // BUY conditions
-  if (direction === 'BUY' && setupScore >= 7 && news !== 'Bearish' && insider !== 'Bearish') {
+  // BUY conditions: setup strong, no bearish conflicts, pattern not bearish
+  if (direction === 'BUY' && setupScore >= 7 && news !== 'Bearish' && insider !== 'Bearish' && patBias !== 'Bearish') {
     action = 'BUY';
     const parts = ['Bullish setup'];
+    if (patBias === 'Bullish') parts.push(`${pattern.name} pattern detected`);
     if (insider === 'Bullish') parts.push('supported by insider buying');
     if (news === 'Bullish') parts.push('positive market momentum');
     else if (news === 'Neutral') parts.push('stable market conditions');
     explanation = parts.join(' with ') + '.';
   }
-  // SELL conditions
-  else if (direction === 'SELL' && setupScore >= 7 && news !== 'Bullish' && insider !== 'Bullish') {
+  // SELL conditions: setup strong, no bullish conflicts, pattern not bullish
+  else if (direction === 'SELL' && setupScore >= 7 && news !== 'Bullish' && insider !== 'Bullish' && patBias !== 'Bullish') {
     action = 'SELL';
     const parts = ['Bearish setup near resistance'];
+    if (patBias === 'Bearish') parts.push(`${pattern.name} pattern detected`);
     if (insider === 'Bearish') parts.push('insider selling activity');
     if (news === 'Bearish') parts.push('negative market momentum');
     else if (news === 'Neutral') parts.push('weakening conditions');
@@ -817,8 +1162,10 @@ function makeUnifiedDecision(plan, insiderSentiment, newsSentiment) {
       const conflicts = [];
       if (direction === 'BUY' && news === 'Bearish') conflicts.push('negative momentum');
       if (direction === 'BUY' && insider === 'Bearish') conflicts.push('insider selling');
+      if (direction === 'BUY' && patBias === 'Bearish') conflicts.push(`bearish ${pattern.name} pattern`);
       if (direction === 'SELL' && news === 'Bullish') conflicts.push('positive momentum');
       if (direction === 'SELL' && insider === 'Bullish') conflicts.push('insider buying');
+      if (direction === 'SELL' && patBias === 'Bullish') conflicts.push(`bullish ${pattern.name} pattern`);
       explanation = conflicts.length
         ? `Mixed signals — setup suggests ${direction} but conflicting ${conflicts.join(' and ')}. Defaulting to WAIT.`
         : 'Conditions are not clearly aligned. Patience is the best trade here.';
@@ -829,11 +1176,12 @@ function makeUnifiedDecision(plan, insiderSentiment, newsSentiment) {
     action, confidence, explanation,
     components: {
       setup: { label: 'Market Structure', value: setupScore >= 7 ? (direction || 'Neutral') : 'Weak', score: setupScore },
-      news: { label: 'News Sentiment', value: news, score: newsSentiment.score },
-      insider: { label: 'Insider Activity', value: insider, score: insiderSentiment.score },
+      pattern: { label: 'Pattern', value: pattern.confidence >= 4 ? patBias : 'None', score: pattern.confidence },
+      news: { label: 'Sentiment', value: news, score: newsSentiment.score },
+      insider: { label: 'Insider', value: insider, score: insiderSentiment.score },
       rr: { label: 'Risk/Reward', value: plan.rr ? `${plan.rr}:1` : 'N/A', score: plan.rr || 0 },
     },
-    newsPoints, insiderPoints,
+    newsPoints, insiderPoints, patternPoints,
   };
 }
 </script>
@@ -1020,8 +1368,11 @@ async function analyze() {
     // News sentiment from price/volume analysis
     const newsSentiment = analyzeNewsSentiment(data);
 
-    // Unified decision engine
-    const decision = makeUnifiedDecision(plan, insiderSentiment, newsSentiment);
+    // Pattern recognition
+    const pattern = detectPatterns(data, supports, resistances);
+
+    // Unified decision engine (now includes pattern)
+    const decision = makeUnifiedDecision(plan, insiderSentiment, newsSentiment, pattern);
 
     // Override plan signal with unified decision
     plan.signal = decision.action;
@@ -1033,7 +1384,7 @@ async function analyze() {
       plan.sizing = 'Small position (50%)';
     }
 
-    renderDashboard(ticker, data, supports, resistances, plan, pos, accountSize, riskPct, insiderData, insiderSentiment, newsSentiment, decision);
+    renderDashboard(ticker, data, supports, resistances, plan, pos, accountSize, riskPct, insiderData, insiderSentiment, newsSentiment, decision, pattern);
     $('results').style.display = 'block';
   } catch (err) {
     $('error').innerHTML = `<div class="error-msg" style="white-space:pre-line;text-align:left;padding:20px">${err.message}</div>`;
@@ -1046,7 +1397,7 @@ async function analyze() {
 }
 
 // ─── Render Dashboard ───
-function renderDashboard(ticker, data, supports, resistances, plan, pos, accountSize, riskPct, insiderData, insiderSentiment, newsSentiment, decision) {
+function renderDashboard(ticker, data, supports, resistances, plan, pos, accountSize, riskPct, insiderData, insiderSentiment, newsSentiment, decision, pattern) {
   let html = '';
 
   // ── FINAL DECISION PANEL (top) ──
@@ -1086,6 +1437,28 @@ function renderDashboard(ticker, data, supports, resistances, plan, pos, account
   html += `<div class="plan-item"><div class="plan-label">Risk Amount</div><div class="plan-value red">${pos.riskAmt > 0 ? fmt(pos.riskAmt) : 'N/A'}</div></div>`;
   html += `<div class="plan-item"><div class="plan-label">Risk %</div><div class="plan-value yellow">${riskPct}%</div></div>`;
   html += `</div></div>`;
+
+  // ── Pattern Recognition Panel ──
+  const patBiasClass = pattern.bias === 'Bullish' ? 'bullish' : pattern.bias === 'Bearish' ? 'bearish' : 'neutral';
+  const patBiasIcon = pattern.bias === 'Bullish' ? '🟢' : pattern.bias === 'Bearish' ? '🔴' : '⚪';
+  const patConfClass = pattern.confidence >= 7 ? 'high' : pattern.confidence >= 4 ? 'mid' : 'low';
+  html += `<div class="pattern-panel">`;
+  html += `<h3>📊 Pattern Recognition</h3>`;
+  html += `<div class="pattern-name">${pattern.name}</div>`;
+  html += `<div class="pattern-bias ${patBiasClass}">${patBiasIcon} ${pattern.bias}</div>`;
+  html += `<div class="pattern-conf">`;
+  html += `<div class="pattern-conf-ring ${patConfClass}">${pattern.confidence}</div>`;
+  html += `<div><div style="font-size:12px;color:var(--muted)">Confidence</div><div style="font-weight:700">${pattern.confidence}/10</div></div>`;
+  html += `</div>`;
+  html += `<div class="pattern-explain">${pattern.explanation}</div>`;
+  if (pattern.factors) {
+    html += `<div class="pattern-factors score-factors">`;
+    for (const [k, v] of Object.entries(pattern.factors)) {
+      html += `<div class="factor"><span>${k}</span><span class="factor-val">${v}</span></div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
 
   // ── Quality + Reasoning ──
   html += `<div class="quality-section">`;
@@ -1173,13 +1546,13 @@ function renderDashboard(ticker, data, supports, resistances, plan, pos, account
   $('results').innerHTML = html;
 
   // Build chart
-  buildChart(ticker, data, supports.map(s => s.level), resistances.map(r => r.level), plan);
+  buildChart(ticker, data, supports.map(s => s.level), resistances.map(r => r.level), plan, pattern);
 }
 </script>
 
 <script>
 // ─── Chart ───
-function buildChart(ticker, data, supports, resistances, plan) {
+function buildChart(ticker, data, supports, resistances, plan, pattern) {
   const dates = data.map(r => r.date);
   const traces = [
     {
@@ -1216,6 +1589,35 @@ function buildChart(ticker, data, supports, resistances, plan) {
   if (plan.target) {
     shapes.push({ type: 'line', y0: plan.target, y1: plan.target, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 2, dash: 'dash' } });
     annotations.push({ y: plan.target, x: 1, xref: 'paper', text: `Target ${plan.target.toFixed(2)}`, showarrow: false, font: { color: '#10b981', size: 11 }, xanchor: 'right' });
+  }
+
+  // Pattern zone highlighting
+  if (pattern?.zone) {
+    const z = pattern.zone;
+    const zColor = pattern.bias === 'Bullish' ? 'rgba(16,185,129,0.08)' : pattern.bias === 'Bearish' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)';
+    const zBorder = pattern.bias === 'Bullish' ? 'rgba(16,185,129,0.3)' : pattern.bias === 'Bearish' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)';
+
+    if (z.type === 'consolidation' || z.type === 'deadcat') {
+      const x0 = data[Math.max(0, z.startIdx)]?.date || dates[0];
+      const x1 = data[Math.min(data.length - 1, z.endIdx)]?.date || dates[dates.length - 1];
+      shapes.push({ type: 'rect', x0, x1, y0: z.low, y1: z.high || z.bounceHigh || z.low * 1.02, fillcolor: zColor, line: { color: zBorder, width: 1, dash: 'dot' } });
+      annotations.push({ x: x0, y: z.high || z.bounceHigh || z.low * 1.02, text: pattern.name, showarrow: false, font: { color: zBorder.replace('0.3', '0.8'), size: 11 }, xanchor: 'left', yanchor: 'bottom' });
+    }
+    if (z.type === 'double_bottom' && z.neckline) {
+      shapes.push({ type: 'line', y0: z.low, y1: z.low, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 1.5, dash: 'dashdot' } });
+      shapes.push({ type: 'line', y0: z.neckline, y1: z.neckline, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 1, dash: 'dot' } });
+      annotations.push({ y: z.low, x: 0.5, xref: 'paper', text: `Double Bottom $${z.low.toFixed(2)}`, showarrow: false, font: { color: '#10b981', size: 10 } });
+    }
+    if (z.type === 'double_top' && z.neckline) {
+      shapes.push({ type: 'line', y0: z.high, y1: z.high, x0: 0, x1: 1, xref: 'paper', line: { color: '#ef4444', width: 1.5, dash: 'dashdot' } });
+      shapes.push({ type: 'line', y0: z.neckline, y1: z.neckline, x0: 0, x1: 1, xref: 'paper', line: { color: '#ef4444', width: 1, dash: 'dot' } });
+      annotations.push({ y: z.high, x: 0.5, xref: 'paper', text: `Double Top $${z.high.toFixed(2)}`, showarrow: false, font: { color: '#ef4444', size: 10 } });
+    }
+    if ((z.type === 'breakout' || z.type === 'breakdown') && z.level) {
+      const bColor = z.type === 'breakout' ? '#10b981' : '#ef4444';
+      shapes.push({ type: 'line', y0: z.level, y1: z.level, x0: 0, x1: 1, xref: 'paper', line: { color: bColor, width: 2, dash: 'dashdot' } });
+      annotations.push({ y: z.level, x: 0.5, xref: 'paper', text: `${pattern.name} $${z.level.toFixed(2)}`, showarrow: false, font: { color: bColor, size: 11 } });
+    }
   }
 
   Plotly.newPlot('chart', traces, {
