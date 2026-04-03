@@ -278,6 +278,57 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
 .bt-log .loss { color: var(--red); }
 .bt-none { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
 .bt-running { text-align: center; padding: 20px; color: var(--muted); }
+
+/* ─── V6 Hero Decision ─── */
+.hero-decision {
+  background: var(--card); border: 2px solid var(--border); border-radius: 16px;
+  padding: 28px; margin-bottom: 20px; text-align: center; animation: fadeIn 0.5s ease;
+}
+.hero-decision.buy-glow { border-color: rgba(16,185,129,0.6); box-shadow: 0 0 30px rgba(16,185,129,0.08); }
+.hero-decision.sell-glow { border-color: rgba(239,68,68,0.6); box-shadow: 0 0 30px rgba(239,68,68,0.08); }
+.hero-decision.wait-glow { border-color: rgba(245,158,11,0.4); }
+.hero-action { font-size: 48px; font-weight: 900; letter-spacing: 2px; margin-bottom: 8px; }
+.hero-action.buy { color: var(--green); }
+.hero-action.sell { color: var(--red); }
+.hero-action.wait { color: var(--muted); }
+.hero-sub { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+.hero-conf-bar { max-width: 400px; margin: 0 auto 8px; }
+.hero-conf-bar .hcb-track { height: 12px; background: var(--surface); border-radius: 6px; overflow: hidden; }
+.hero-conf-bar .hcb-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+.hero-conf-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; max-width: 400px; margin-left: auto; margin-right: auto; }
+.hero-quality { display: inline-block; margin-top: 10px; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.hero-quality.a { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.hero-quality.b { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.hero-quality.c { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+
+/* Confluence bar */
+.confluence-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; animation: fadeIn 0.4s ease; }
+.confluence-panel h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 14px; }
+.confl-bar-wrap { position: relative; height: 20px; background: linear-gradient(to right, rgba(239,68,68,0.15), var(--surface) 50%, rgba(16,185,129,0.15)); border-radius: 10px; margin-bottom: 10px; overflow: visible; }
+.confl-marker { position: absolute; top: -2px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--text); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; transition: left 0.5s ease; }
+.confl-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.confl-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.confl-item { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
+.confl-item .ci-val { font-weight: 700; }
+.confl-item .ci-val.pos { color: var(--green); }
+.confl-item .ci-val.neg { color: var(--red); }
+
+/* Risk-first trade plan */
+.risk-plan { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; animation: fadeIn 0.4s ease; }
+.risk-plan h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 14px; }
+.risk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.risk-item { background: var(--surface); border-radius: 8px; padding: 12px; text-align: center; }
+.risk-item.highlight { border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); }
+.risk-item .ri-label { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.risk-item .ri-val { font-size: 18px; font-weight: 700; }
+
+/* Discipline warnings */
+.discipline-warn {
+  background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--red); animation: fadeIn 0.3s ease;
+}
+.discipline-warn .dw-icon { font-size: 18px; }
 .bt-running .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 8px; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -323,7 +374,7 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
   <h1><span>📊</span>Trading Decision Dashboard</h1>
   <div class="header-right">
     <div class="live-indicator off" id="live-status"><span class="live-dot"></span><span id="live-label">Offline</span></div>
-    <span class="header-badge">v5.0 · Live</span>
+    <span class="header-badge">v6.0 · Pro Decision Engine</span>
   </div>
 </div>
 
@@ -1481,156 +1532,125 @@ async function analyze() {
 // ─── Render Dashboard ───
 function renderDashboard(ticker, data, supports, resistances, plan, pos, accountSize, riskPct, insiderData, insiderSentiment, newsSentiment, decision, pattern) {
   let html = '';
+  const riskPctVal = parseFloat($('risk-pct').value) || 1.5;
 
-  // ── FINAL DECISION PANEL (top) ──
-  const fdClass = decision.action === 'BUY' ? 'buy' : decision.action === 'SELL' ? 'sell' : 'wait';
-  const fdIcon = decision.action === 'BUY' ? '✅' : decision.action === 'SELL' ? '❌' : '⏳';
-  const fdBorder = decision.action === 'BUY' ? 'buy-border' : decision.action === 'SELL' ? 'sell-border' : 'wait-border';
-  const confClass = decision.confidence >= 8 ? 'high' : decision.confidence >= 5 ? 'mid' : 'low';
-
-  html += `<div class="final-decision ${fdBorder}">`;
-  html += `<h3>🚦 Final Decision</h3>`;
-  html += `<div class="fd-action ${fdClass}">${fdIcon} ${decision.action}</div>`;
-  html += `<div class="fd-confidence-row">`;
-  html += `<div class="fd-conf-ring ${confClass}">${decision.confidence}</div>`;
-  html += `<div style="text-align:left"><div style="font-size:12px;color:var(--muted);text-transform:uppercase">Confidence Score</div><div style="font-size:16px;font-weight:700">${decision.confidence}/10</div></div>`;
-  html += `</div>`;
-  html += `<div class="fd-explanation">${decision.explanation}</div>`;
-  html += `<div class="fd-signals">`;
-  for (const [, comp] of Object.entries(decision.components)) {
-    const valColor = comp.value === 'Bullish' || comp.value === 'BUY' ? 'var(--green)' :
-                     comp.value === 'Bearish' || comp.value === 'SELL' || comp.value === 'Weak' ? 'var(--red)' : 'var(--yellow)';
-    html += `<div class="fd-signal-item"><div class="fd-sig-label">${comp.label}</div><div class="fd-sig-value" style="color:${valColor}">${comp.value}</div></div>`;
-  }
-  html += `</div></div>`;
-
-  // ── Signal banner ──
-  const sigClass = plan.signal === 'WAIT' ? 'wait' : plan.signal === 'SELL' || plan.direction === 'SELL' ? 'sell' : 'buy';
-  const sigIcon = plan.signal === 'WAIT' ? '⏳' : plan.signal === 'SELL' ? '❌' : '✅';
-  const sigLabel = plan.signal === 'WAIT' ? 'WAIT — No Clear Setup' : `${plan.signal} — ${plan.setupType}`;
-  html += `<div class="signal-banner ${sigClass}">${sigIcon} ${sigLabel}<span class="signal-sub">Setup: ${plan.score}/10 · Confidence: ${decision.confidence}/10</span></div>`;
-
-  // ── Trade plan box ──
-  html += `<div class="trade-plan"><h3>📌 Trade Plan — ${ticker}</h3><div class="plan-grid">`;
-  html += `<div class="plan-item"><div class="plan-label">Entry Price</div><div class="plan-value accent">${fmt(plan.entry)}</div></div>`;
-  html += `<div class="plan-item"><div class="plan-label">Stop Loss</div><div class="plan-value red">${fmt(plan.stop)}</div></div>`;
-  html += `<div class="plan-item"><div class="plan-label">Take Profit</div><div class="plan-value green">${fmt(plan.target)}</div></div>`;
-  html += `<div class="plan-item"><div class="plan-label">Position Size</div><div class="plan-value">${pos.shares > 0 ? pos.shares + ' shares' : 'N/A'}</div></div>`;
-  html += `<div class="plan-item"><div class="plan-label">Risk Amount</div><div class="plan-value red">${pos.riskAmt > 0 ? fmt(pos.riskAmt) : 'N/A'}</div></div>`;
-  html += `<div class="plan-item"><div class="plan-label">Risk %</div><div class="plan-value yellow">${riskPct}%</div></div>`;
-  html += `</div></div>`;
-
-  // ── Pattern Recognition Panel ──
-  const patBiasClass = pattern.bias === 'Bullish' ? 'bullish' : pattern.bias === 'Bearish' ? 'bearish' : 'neutral';
-  const patBiasIcon = pattern.bias === 'Bullish' ? '🟢' : pattern.bias === 'Bearish' ? '🔴' : '⚪';
-  const patConfClass = pattern.confidence >= 7 ? 'high' : pattern.confidence >= 4 ? 'mid' : 'low';
-  html += `<div class="pattern-panel">`;
-  html += `<h3>📊 Pattern Recognition</h3>`;
-  html += `<div class="pattern-name">${pattern.name}</div>`;
-  html += `<div class="pattern-bias ${patBiasClass}">${patBiasIcon} ${pattern.bias}</div>`;
-  html += `<div class="pattern-conf">`;
-  html += `<div class="pattern-conf-ring ${patConfClass}">${pattern.confidence}</div>`;
-  html += `<div><div style="font-size:12px;color:var(--muted)">Confidence</div><div style="font-weight:700">${pattern.confidence}/10</div></div>`;
-  html += `</div>`;
-  html += `<div class="pattern-explain">${pattern.explanation}</div>`;
-  if (pattern.factors) {
-    html += `<div class="pattern-factors score-factors">`;
-    for (const [k, v] of Object.entries(pattern.factors)) {
-      html += `<div class="factor"><span>${k}</span><span class="factor-val">${v}</span></div>`;
-    }
-    html += `</div>`;
-  }
-  html += `</div>`;
-
-  // ── Quality + Reasoning ──
-  html += `<div class="quality-section">`;
-  const scoreClass = plan.score >= 9 ? 'high' : plan.score >= 7 ? 'mid' : 'low';
-  html += `<div class="quality-card"><h3>Trade Quality Score</h3>`;
-  html += `<div class="score-ring ${scoreClass}">${plan.score}</div>`;
-  html += `<div class="score-label">${plan.score < 7 ? 'No Trade' : plan.score <= 8 ? 'Small Position' : 'Full Position'}</div>`;
-  html += `<div class="score-factors">`;
-  for (const [k, v] of Object.entries(plan.factors)) {
-    html += `<div class="factor"><span>${k}</span><span class="factor-val">${v}</span></div>`;
-  }
-  html += `</div></div>`;
-
-  html += `<div class="quality-card"><h3>Analysis & Reasoning</h3>`;
-  html += `<div class="reasoning-text">${decision.explanation}</div>`;
+  // ── 1. HERO DECISION (dominant) ──
+  const hClass = decision.action === 'BUY' ? 'buy' : decision.action === 'SELL' ? 'sell' : 'wait';
+  const hGlow = decision.action === 'BUY' ? 'buy-glow' : decision.action === 'SELL' ? 'sell-glow' : 'wait-glow';
   const confPct = decision.confidence * 10;
-  const confColor = decision.confidence >= 7 ? 'var(--green)' : decision.confidence >= 5 ? 'var(--yellow)' : 'var(--red)';
-  html += `<div class="confidence-bar"><div class="bar-bg"><div class="bar-fill" style="width:${confPct}%;background:${confColor}"></div></div>`;
-  html += `<div class="bar-label"><span>Confidence</span><span>${confPct}%</span></div></div>`;
-  html += `<div class="score-factors" style="margin-top:14px">`;
-  html += `<div class="factor"><span>Current Price</span><span class="factor-val">${fmt(plan.price)}</span></div>`;
-  html += `<div class="factor"><span>Trend</span><span class="factor-val" style="color:${plan.uptrend ? 'var(--green)' : 'var(--red)'}">${plan.uptrend ? '⬆ Uptrend' : '⬇ Downtrend'}</span></div>`;
-  html += `<div class="factor"><span>ATR</span><span class="factor-val">${fmt(plan.atr)}</span></div>`;
-  html += `<div class="factor"><span>R:R Ratio</span><span class="factor-val">${plan.rr ? plan.rr + ':1' : 'N/A'}</span></div>`;
-  html += `</div></div></div>`;
+  const confColor = decision.confidence >= 7 ? 'var(--green)' : decision.confidence >= 4 ? 'var(--yellow)' : 'var(--red)';
+  const qualityLabel = decision.confidence >= 8 ? 'A+ Setup' : decision.confidence >= 6 ? 'Decent' : 'Avoid';
+  const qualityClass = decision.confidence >= 8 ? 'a' : decision.confidence >= 6 ? 'b' : 'c';
 
-  // ── Intel Grid: Insider + News side by side ──
-  html += `<div class="intel-grid">`;
-
-  // Insider panel
-  const sentClass = insiderSentiment.sentiment.toLowerCase();
-  const sentIcon = sentClass === 'bullish' ? '🟢' : sentClass === 'bearish' ? '🔴' : '🟡';
-  html += `<div class="insider-panel"><h3>🕵️ Insider Activity</h3>`;
-  html += `<div class="insider-header">`;
-  html += `<div class="insider-sentiment ${sentClass}">${sentIcon} ${insiderSentiment.sentiment}</div>`;
-  html += `<div class="insider-score">Score: ${insiderSentiment.score > 0 ? '+' : ''}${insiderSentiment.score}</div>`;
+  html += `<div class="hero-decision ${hGlow}">`;
+  html += `<div class="hero-action ${hClass}">${decision.action}</div>`;
+  html += `<div class="hero-sub">${decision.explanation}</div>`;
+  html += `<div class="hero-conf-bar"><div class="hcb-track"><div class="hcb-fill" style="width:${confPct}%;background:${confColor}"></div></div></div>`;
+  html += `<div class="hero-conf-label"><span>Confidence</span><span>${decision.confidence}/10</span></div>`;
+  html += `<div class="hero-quality ${qualityClass}">${qualityLabel}</div>`;
   html += `</div>`;
-  html += `<ul class="insider-list">`;
-  insiderData.transactions.slice(0, 6).forEach(t => {
-    const icon = t.type === 'Buy' ? '📈' : '📉';
-    const sharesStr = t.shares ? t.shares.toLocaleString() : '?';
-    const color = t.type === 'Buy' ? 'var(--green)' : 'var(--red)';
-    html += `<li><span class="insider-icon">${icon}</span><span style="color:${color}">${t.name} ${t.type === 'Buy' ? 'bought' : 'sold'} ${sharesStr} shares</span><span class="insider-date">${t.date}</span></li>`;
-  });
-  html += `</ul>`;
-  if (insiderData.isMock) {
-    html += `<div class="insider-note">⚠ Simulated data (SEC EDGAR unavailable)</div>`;
+
+  // ── Discipline warnings ──
+  if (DisciplineEngine.sessionTrades >= 3) {
+    html += `<div class="discipline-warn"><span class="dw-icon">🔒</span> Trading locked — max 3 trades per session reached. Reset to continue.</div>`;
+  } else if (DisciplineEngine.consecutiveLosses >= 2) {
+    html += `<div class="discipline-warn"><span class="dw-icon">⚠️</span> 2 consecutive losses — position size reduced by 50%. Trade with caution.</div>`;
   }
-  html += `</div>`;
+  if (decision.action === 'WAIT') {
+    html += `<div class="discipline-warn" style="border-color:rgba(245,158,11,0.2);color:var(--yellow);background:rgba(245,158,11,0.04)"><span class="dw-icon">⏳</span> No Trade — Conditions not favorable. Wait for a high-quality setup.</div>`;
+  }
 
-  // News sentiment panel
-  const newsClass = newsSentiment.sentiment.toLowerCase();
-  const newsIcon = newsClass === 'bullish' ? '🟢' : newsClass === 'bearish' ? '🔴' : '🟡';
-  html += `<div class="news-panel"><h3>📰 Market Sentiment</h3>`;
-  html += `<div class="news-header">`;
-  html += `<div class="insider-sentiment ${newsClass}">${newsIcon} ${newsSentiment.sentiment}</div>`;
-  html += `<div class="insider-score">Score: ${newsSentiment.score > 0 ? '+' : ''}${newsSentiment.score}</div>`;
-  html += `</div>`;
-  html += `<ul class="news-signals">`;
-  newsSentiment.signals.forEach(s => {
-    const icon = s.type === 'bullish' ? '🟢' : s.type === 'bearish' ? '🔴' : '⚪';
-    const color = s.type === 'bullish' ? 'var(--green)' : s.type === 'bearish' ? 'var(--red)' : 'var(--muted)';
-    html += `<li><span style="font-size:14px">${icon}</span><span style="color:${color}">${s.text}</span></li>`;
+  // ── 2. CONFLUENCE SCORE ──
+  const cScore = (decision.newsPoints || 0) + (decision.insiderPoints || 0) + (decision.patternPoints || 0) + (plan.score >= 7 ? 2 : plan.score >= 5 ? 1 : 0);
+  const cPct = Math.max(0, Math.min(100, ((cScore + 6) / 12) * 100));
+  const cBg = cScore > 0 ? 'var(--green)' : cScore < 0 ? 'var(--red)' : 'var(--yellow)';
+  html += `<div class="confluence-panel"><h3>Confluence Score</h3>`;
+  html += `<div class="confl-bar-wrap"><div class="confl-marker" style="left:calc(${cPct}% - 12px);background:${cBg}">${cScore > 0 ? '+' : ''}${cScore}</div></div>`;
+  html += `<div class="confl-labels"><span>-6 Bearish</span><span>Neutral</span><span>+6 Bullish</span></div>`;
+  html += `<div class="confl-breakdown">`;
+  const patPts = decision.patternPoints || 0;
+  const setupPts = plan.score >= 7 ? 2 : plan.score >= 5 ? 1 : 0;
+  const newsPts = decision.newsPoints || 0;
+  const insPts = decision.insiderPoints || 0;
+  [[`Setup Quality`, setupPts], [`Pattern`, patPts], [`Sentiment`, newsPts], [`Insider`, insPts]].forEach(([label, val]) => {
+    const cls = val > 0 ? 'pos' : val < 0 ? 'neg' : '';
+    html += `<div class="confl-item"><span>${label}</span><span class="ci-val ${cls}">${val > 0 ? '+' : ''}${val}</span></div>`;
   });
-  html += `</ul></div>`;
+  html += `</div></div>`;
 
-  html += `</div>`; // close intel-grid
+  // ── 3. RISK-FIRST TRADE PLAN ──
+  html += `<div class="risk-plan"><h3>📌 Trade Plan — ${ticker}</h3><div class="risk-grid">`;
+  html += `<div class="risk-item highlight"><div class="ri-label">Risk Amount</div><div class="ri-val" style="color:var(--red)">${pos.riskAmt > 0 ? '$' + pos.riskAmt.toLocaleString() : 'N/A'}</div></div>`;
+  html += `<div class="risk-item highlight"><div class="ri-label">Risk %</div><div class="ri-val" style="color:var(--red)">${riskPctVal}%</div></div>`;
+  html += `<div class="risk-item"><div class="ri-label">Position Size</div><div class="ri-val">${pos.shares > 0 ? pos.shares + ' shares' : 'N/A'}</div></div>`;
+  html += `<div class="risk-item"><div class="ri-label">Entry Price</div><div class="ri-val" style="color:var(--accent)">${fmt(plan.entry)}</div></div>`;
+  html += `<div class="risk-item"><div class="ri-label">Stop Loss</div><div class="ri-val" style="color:var(--red)">${fmt(plan.stop)}</div></div>`;
+  html += `<div class="risk-item"><div class="ri-label">Take Profit</div><div class="ri-val" style="color:var(--green)">${fmt(plan.target)}</div></div>`;
+  html += `<div class="risk-item"><div class="ri-label">R:R Ratio</div><div class="ri-val">${plan.rr ? plan.rr + ':1' : 'N/A'}</div></div>`;
+  html += `<div class="risk-item"><div class="ri-label">Trend</div><div class="ri-val" style="color:${plan.uptrend ? 'var(--green)' : 'var(--red)'}">${plan.uptrend ? '⬆ Up' : '⬇ Down'}</div></div>`;
+  html += `</div></div>`;
 
-  // ── Chart ──
+  // ── 4. CHART ──
   html += `<div class="chart-wrap"><h3>Price Chart — ${ticker}</h3>`;
   html += `<div class="chart-controls">`;
   html += `<label class="chart-toggle"><input type="checkbox" id="chk-signals" checked onchange="chartToggles()"> Signals</label>`;
   html += `<label class="chart-toggle"><input type="checkbox" id="chk-levels" checked onchange="chartToggles()"> Trade Levels</label>`;
   html += `<label class="chart-toggle"><input type="checkbox" id="chk-sr" checked onchange="chartToggles()"> S/R Lines</label>`;
-  html += `</div>`;
-  html += `<div id="tv-chart"></div></div>`;
+  html += `</div><div id="tv-chart"></div></div>`;
 
-  // Expandable sections
+  // ── 5. PATTERN + QUALITY ──
+  html += `<div class="quality-section">`;
+  // Pattern panel
+  const patBiasClass = pattern.bias === 'Bullish' ? 'bullish' : pattern.bias === 'Bearish' ? 'bearish' : 'neutral';
+  const patBiasIcon = pattern.bias === 'Bullish' ? '🟢' : pattern.bias === 'Bearish' ? '🔴' : '⚪';
+  const patConfClass = pattern.confidence >= 7 ? 'high' : pattern.confidence >= 4 ? 'mid' : 'low';
+  html += `<div class="quality-card"><h3>📊 Pattern</h3>`;
+  html += `<div class="pattern-name" style="font-size:18px">${pattern.name}</div>`;
+  html += `<div class="pattern-bias ${patBiasClass}">${patBiasIcon} ${pattern.bias}</div>`;
+  html += `<div class="pattern-conf"><div class="pattern-conf-ring ${patConfClass}">${pattern.confidence}</div><div><div style="font-size:11px;color:var(--muted)">Confidence</div><div style="font-weight:700">${pattern.confidence}/10</div></div></div>`;
+  html += `<div class="pattern-explain">${pattern.explanation}</div>`;
+  if (pattern.factors) { html += `<div class="pattern-factors score-factors">`; for (const [k,v] of Object.entries(pattern.factors)) html += `<div class="factor"><span>${k}</span><span class="factor-val">${v}</span></div>`; html += `</div>`; }
+  html += `</div>`;
+  // Quality score
+  const scoreClass = plan.score >= 9 ? 'high' : plan.score >= 7 ? 'mid' : 'low';
+  html += `<div class="quality-card"><h3>Trade Quality</h3>`;
+  html += `<div class="score-ring ${scoreClass}">${plan.score}</div>`;
+  html += `<div class="score-label">${plan.score < 7 ? 'No Trade' : plan.score <= 8 ? 'Small Position' : 'Full Position'}</div>`;
+  html += `<div class="score-factors">`;
+  for (const [k,v] of Object.entries(plan.factors)) html += `<div class="factor"><span>${k}</span><span class="factor-val">${v}</span></div>`;
+  html += `</div></div></div>`;
+
+  // ── 6. INTEL GRID ──
+  html += `<div class="intel-grid">`;
+  const sentClass = insiderSentiment.sentiment.toLowerCase();
+  const sentIcon = sentClass === 'bullish' ? '🟢' : sentClass === 'bearish' ? '🔴' : '🟡';
+  html += `<div class="insider-panel"><h3>🕵️ Insider Activity</h3>`;
+  html += `<div class="insider-header"><div class="insider-sentiment ${sentClass}">${sentIcon} ${insiderSentiment.sentiment}</div><div class="insider-score">Score: ${insiderSentiment.score > 0 ? '+' : ''}${insiderSentiment.score}</div></div>`;
+  html += `<ul class="insider-list">`;
+  insiderData.transactions.slice(0, 5).forEach(t => {
+    const ic = t.type === 'Buy' ? '📈' : '📉'; const cl = t.type === 'Buy' ? 'var(--green)' : 'var(--red)';
+    html += `<li><span class="insider-icon">${ic}</span><span style="color:${cl}">${t.name} ${t.type === 'Buy' ? 'bought' : 'sold'} ${t.shares ? t.shares.toLocaleString() : '?'} shares</span><span class="insider-date">${t.date}</span></li>`;
+  });
+  html += `</ul>`;
+  if (insiderData.isMock) html += `<div class="insider-note">⚠ Simulated data (deploy to HTTPS for live SEC data)</div>`;
+  html += `</div>`;
+  const newsClass = newsSentiment.sentiment.toLowerCase();
+  const newsIcon = newsClass === 'bullish' ? '🟢' : newsClass === 'bearish' ? '🔴' : '🟡';
+  html += `<div class="news-panel"><h3>📰 Market Sentiment</h3>`;
+  html += `<div class="news-header"><div class="insider-sentiment ${newsClass}">${newsIcon} ${newsSentiment.sentiment}</div><div class="insider-score">Score: ${newsSentiment.score > 0 ? '+' : ''}${newsSentiment.score}</div></div>`;
+  html += `<ul class="news-signals">`;
+  newsSentiment.signals.forEach(s => { const ic = s.type === 'bullish' ? '🟢' : s.type === 'bearish' ? '🔴' : '⚪'; const cl = s.type === 'bullish' ? 'var(--green)' : s.type === 'bearish' ? 'var(--red)' : 'var(--muted)'; html += `<li><span style="font-size:14px">${ic}</span><span style="color:${cl}">${s.text}</span></li>`; });
+  html += `</ul></div></div>`;
+
+  // ── 7. EXPANDABLE ──
   html += `<details><summary>📋 Support & Resistance Levels</summary><div class="detail-content"><div class="levels-grid">`;
   html += `<div><h4>Support</h4>${supports.slice().reverse().map(s => `<div class="level support">${fmt(s.level)} <span style="color:var(--muted);font-size:11px">(${s.touches} touch${s.touches > 1 ? 'es' : ''})</span></div>`).join('')}</div>`;
   html += `<div><h4>Resistance</h4>${resistances.map(r => `<div class="level resistance">${fmt(r.level)} <span style="color:var(--muted);font-size:11px">(${r.touches} touch${r.touches > 1 ? 'es' : ''})</span></div>`).join('')}</div>`;
   html += `</div></div></details>`;
-
   html += `<details><summary>📄 Recent Price Data</summary><div class="detail-content">`;
   html += `<table><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>MA20</th><th>MA50</th></tr></thead><tbody>`;
-  data.slice(-20).forEach(r => {
-    html += `<tr><td>${r.date}</td><td>${fmt(r.open)}</td><td>${fmt(r.high)}</td><td>${fmt(r.low)}</td><td>${fmt(r.close)}</td><td>${r.ma20 != null ? fmt(r.ma20) : '—'}</td><td>${r.ma50 != null ? fmt(r.ma50) : '—'}</td></tr>`;
-  });
+  data.slice(-20).forEach(r => { html += `<tr><td>${r.date}</td><td>${fmt(r.open)}</td><td>${fmt(r.high)}</td><td>${fmt(r.low)}</td><td>${fmt(r.close)}</td><td>${r.ma20 != null ? fmt(r.ma20) : '—'}</td><td>${r.ma50 != null ? fmt(r.ma50) : '—'}</td></tr>`; });
   html += `</tbody></table></div></details>`;
-
   $('results').innerHTML = html;
 
   // Build chart with signals
@@ -1756,6 +1776,21 @@ function applyChartOverlays() {
 }
 
 function chartToggles() { applyChartOverlays(); }
+
+// ─── Discipline Engine ───
+const DisciplineEngine = {
+  sessionTrades: 0,
+  consecutiveLosses: 0,
+  maxTrades: 3,
+  isLocked() { return this.sessionTrades >= this.maxTrades; },
+  shouldReduceSize() { return this.consecutiveLosses >= 2; },
+  recordTrade(isWin) {
+    this.sessionTrades++;
+    if (isWin) this.consecutiveLosses = 0;
+    else this.consecutiveLosses++;
+  },
+  reset() { this.sessionTrades = 0; this.consecutiveLosses = 0; },
+};
 
 // ─── Live Update Engine ───
 const LiveEngine = {
