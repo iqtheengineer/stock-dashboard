@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Decision Dashboard</title>
-<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 :root {
   --bg: #0b0e14; --surface: #141820; --card: #1a1f2e; --border: #252b3b;
@@ -115,6 +115,13 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans
   padding: 16px; margin-bottom: 20px; animation: fadeIn 0.4s ease;
 }
 .chart-wrap h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 12px; }
+.chart-controls { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+.chart-toggle {
+  display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted);
+  cursor: pointer; user-select: none;
+}
+.chart-toggle input { accent-color: var(--accent); cursor: pointer; }
+#tv-chart { width: 100%; height: 480px; border-radius: 8px; overflow: hidden; }
 
 /* Expandable */
 details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; }
@@ -275,6 +282,37 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Live status */
+.live-indicator {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+  padding: 4px 10px; border-radius: 20px; background: var(--card); border: 1px solid var(--border);
+}
+.live-dot { width: 8px; height: 8px; border-radius: 50%; }
+.live-indicator.live .live-dot { background: var(--green); animation: pulse 1.5s infinite; }
+.live-indicator.live { color: var(--green); }
+.live-indicator.delayed .live-dot { background: var(--yellow); }
+.live-indicator.delayed { color: var(--yellow); }
+.live-indicator.off .live-dot { background: var(--red); }
+.live-indicator.off { color: var(--muted); }
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+/* Live toggle */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.toggle-label { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+.toggle { position: relative; width: 40px; height: 22px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle .slider {
+  position: absolute; inset: 0; background: var(--border); border-radius: 11px; transition: 0.3s;
+}
+.toggle .slider::before {
+  content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px;
+  background: var(--muted); border-radius: 50%; transition: 0.3s;
+}
+.toggle input:checked + .slider { background: var(--green); }
+.toggle input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+.last-update { font-size: 11px; color: var(--muted); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -283,7 +321,10 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
 
 <div class="header">
   <h1><span>📊</span>Trading Decision Dashboard</h1>
-  <span class="header-badge">v4.0 · Pattern Recognition</span>
+  <div class="header-right">
+    <div class="live-indicator off" id="live-status"><span class="live-dot"></span><span id="live-label">Offline</span></div>
+    <span class="header-badge">v5.0 · Live</span>
+  </div>
 </div>
 
 <div class="app">
@@ -297,7 +338,10 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
     <div class="form-row">
       <div class="form-group">
         <label for="period">Period</label>
-        <select id="period">
+        <select id="period" onchange="onTimeframeChange()">
+          <option value="1d">1 Day</option>
+          <option value="5d">5 Days</option>
+          <option value="1mo">1 Month</option>
           <option value="6mo">6 Months</option>
           <option value="1y" selected>1 Year</option>
           <option value="2y">2 Years</option>
@@ -305,12 +349,23 @@ td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
       </div>
       <div class="form-group">
         <label for="interval">Interval</label>
-        <select id="interval">
+        <select id="interval" onchange="onTimeframeChange()">
+          <option value="1m">1 Min</option>
+          <option value="5m">5 Min</option>
+          <option value="15m">15 Min</option>
+          <option value="30m">30 Min</option>
+          <option value="1h">1 Hour</option>
           <option value="1d" selected>Daily</option>
           <option value="1wk">Weekly</option>
         </select>
       </div>
     </div>
+
+    <div class="toggle-wrap">
+      <label class="toggle"><input type="checkbox" id="live-toggle" onchange="toggleLive()"><span class="slider"></span></label>
+      <span class="toggle-label">Live Updates</span>
+    </div>
+    <div class="last-update" id="last-update"></div>
 
     <div class="divider"></div>
     <h2>Risk Engine</h2>
@@ -384,6 +439,12 @@ function updateRiskPct() {
 }
 
 function resetAll() {
+  LiveEngine.stop();
+  $('live-toggle').checked = false;
+  LiveEngine.cachedData = null;
+  LiveEngine.ticker = null;
+  LiveEngine.cachedInsider = null;
+  LiveEngine.cachedInsiderSentiment = null;
   $('ticker').value = 'AAPL';
   $('period').value = '1y';
   $('interval').value = '1d';
@@ -393,13 +454,14 @@ function resetAll() {
   $('results').style.display = 'none';
   $('error').style.display = 'none';
   $('placeholder').style.display = 'block';
+  $('last-update').textContent = '';
 }
 
 // ─── Data Fetching ───
 // Multiple free sources with no API keys required.
 
 function periodToDays(period) {
-  return { '6mo': 180, '1y': 365, '2y': 730 }[period] || 365;
+  return { '1d': 1, '5d': 5, '1mo': 30, '6mo': 180, '1y': 365, '2y': 730 }[period] || 365;
 }
 
 function parseYahooData(json) {
@@ -421,9 +483,11 @@ function parseYahooData(json) {
 
 function buildYahooUrl(ticker, period, interval) {
   const now = Math.floor(Date.now() / 1000);
-  const durations = { '6mo': 15778800, '1y': 31557600, '2y': 63115200 };
+  const durations = { '1d': 86400, '5d': 432000, '1mo': 2592000, '6mo': 15778800, '1y': 31557600, '2y': 63115200 };
   const p1 = now - (durations[period] || durations['1y']);
-  return `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${p1}&period2=${now}&interval=${interval}`;
+  // Yahoo uses different interval codes
+  const yInterval = { '1m': '1m', '5m': '5m', '15m': '15m', '30m': '30m', '1h': '60m', '1d': '1d', '1wk': '1wk' }[interval] || '1d';
+  return `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${p1}&period2=${now}&interval=${yInterval}&includePrePost=false`;
 }
 
 // Strategy 1: Yahoo via allorigins (most reliable free CORS proxy)
@@ -1353,6 +1417,13 @@ async function analyze() {
     const riskPct = parseFloat($('risk-pct').value) || 1.5;
 
     const data = await fetchStockData(ticker, period, interval);
+
+    // Cache for live updates
+    LiveEngine.cachedData = data;
+    LiveEngine.ticker = ticker;
+    LiveEngine.lastFetch = Date.now();
+    LiveEngine.updateTimestamp();
+
     const ma20 = computeMA(data, 'close', 20);
     const ma50 = computeMA(data, 'close', 50);
     data.forEach((d, i) => { d.ma20 = ma20[i]; d.ma50 = ma50[i]; });
@@ -1371,6 +1442,9 @@ async function analyze() {
     try {
       insiderData = await fetchInsiderData(ticker);
       insiderSentiment = scoreInsiderSentiment(insiderData.transactions);
+      // Cache for live updates
+      LiveEngine.cachedInsider = insiderData;
+      LiveEngine.cachedInsiderSentiment = insiderSentiment;
     } catch (_) {}
 
     // News sentiment from price/volume analysis
@@ -1536,7 +1610,13 @@ function renderDashboard(ticker, data, supports, resistances, plan, pos, account
   html += `</div>`; // close intel-grid
 
   // ── Chart ──
-  html += `<div class="chart-wrap"><h3>Price Chart</h3><div id="chart"></div></div>`;
+  html += `<div class="chart-wrap"><h3>Price Chart — ${ticker}</h3>`;
+  html += `<div class="chart-controls">`;
+  html += `<label class="chart-toggle"><input type="checkbox" id="chk-signals" checked onchange="chartToggles()"> Signals</label>`;
+  html += `<label class="chart-toggle"><input type="checkbox" id="chk-levels" checked onchange="chartToggles()"> Trade Levels</label>`;
+  html += `<label class="chart-toggle"><input type="checkbox" id="chk-sr" checked onchange="chartToggles()"> S/R Lines</label>`;
+  html += `</div>`;
+  html += `<div id="tv-chart"></div></div>`;
 
   // Expandable sections
   html += `<details><summary>📋 Support & Resistance Levels</summary><div class="detail-content"><div class="levels-grid">`;
@@ -1553,91 +1633,291 @@ function renderDashboard(ticker, data, supports, resistances, plan, pos, account
 
   $('results').innerHTML = html;
 
-  // Build chart
-  buildChart(ticker, data, supports.map(s => s.level), resistances.map(r => r.level), plan, pattern);
+  // Build chart with signals
+  const signals = generateHistoricalSignals(data, supports, resistances);
+  buildChart(ticker, data, supports.map(s => s.level), resistances.map(r => r.level), plan, pattern, signals);
 }
 </script>
 
 <script>
 // ─── Chart ───
-function buildChart(ticker, data, supports, resistances, plan, pattern) {
-  const dates = data.map(r => r.date);
-  const traces = [
-    {
-      x: dates, open: data.map(r => r.open), high: data.map(r => r.high),
-      low: data.map(r => r.low), close: data.map(r => r.close),
-      type: 'candlestick', name: 'Price',
-      increasing: { line: { color: '#10b981' } },
-      decreasing: { line: { color: '#ef4444' } },
-    },
-    { x: dates, y: data.map(r => r.ma20), type: 'scatter', mode: 'lines', name: 'MA 20', line: { color: '#f97316', width: 1.5 } },
-    { x: dates, y: data.map(r => r.ma50), type: 'scatter', mode: 'lines', name: 'MA 50', line: { color: '#3b82f6', width: 1.5 } },
-  ];
+function generateHistoricalSignals(data, supports, resistances) {
+  const signals = [];
+  const MIN_GAP = 10;
+  let lastSignalIdx = -MIN_GAP;
+  for (let i = 50; i < data.length; i++) {
+    if (i - lastSignalIdx < MIN_GAP) continue;
+    const slice = data.slice(0, i + 1);
+    const ma20 = computeMA(slice, 'close', 20);
+    const ma50 = computeMA(slice, 'close', 50);
+    const { highs, lows } = findPivots(slice);
+    const sups = clusterLevels(lows);
+    const ress = clusterLevels(highs);
+    const atr = calcATR(slice);
+    const plan = generateFullPlan(slice, sups, ress, ma20, ma50, atr);
+    if (plan.signal !== 'WAIT' && plan.score >= 7 && plan.rr >= 2) {
+      signals.push({
+        time: data[i].date,
+        position: plan.direction === 'BUY' ? 'belowBar' : 'aboveBar',
+        color: plan.direction === 'BUY' ? '#10b981' : '#ef4444',
+        shape: plan.direction === 'BUY' ? 'arrowUp' : 'arrowDown',
+        text: plan.direction,
+        size: 2,
+      });
+      lastSignalIdx = i;
+    }
+  }
+  return signals;
+}
 
-  const shapes = [], annotations = [];
+let tvChart = null;
+let tvCandleSeries = null;
+let tvMa20Series = null;
+let tvMa50Series = null;
+let tvChartState = {};
 
-  supports.slice(-4).forEach(s => {
-    shapes.push({ type: 'line', y0: s, y1: s, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 1, dash: 'dot' } });
-    annotations.push({ y: s, x: 0, xref: 'paper', text: `S ${s.toFixed(2)}`, showarrow: false, font: { color: '#10b981', size: 10 }, xanchor: 'left' });
+function dateToTs(dateStr) {
+  const p = dateStr.split('-');
+  return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 1000;
+}
+
+function buildChart(ticker, data, supports, resistances, plan, pattern, signals) {
+  const container = document.getElementById('tv-chart');
+  if (!container) return;
+  tvChartState = { ticker, data, supports, resistances, plan, pattern, signals };
+  if (tvChart) { tvChart.remove(); tvChart = null; }
+  container.innerHTML = '';
+
+  tvChart = LightweightCharts.createChart(container, {
+    width: container.clientWidth, height: 480,
+    layout: { background: { color: '#1a1f2e' }, textColor: '#e2e4e9' },
+    grid: { vertLines: { color: '#252b3b' }, horzLines: { color: '#252b3b' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: '#252b3b' },
+    timeScale: { borderColor: '#252b3b', timeVisible: true },
   });
-  resistances.slice(-4).forEach(r => {
-    shapes.push({ type: 'line', y0: r, y1: r, x0: 0, x1: 1, xref: 'paper', line: { color: '#ef4444', width: 1, dash: 'dot' } });
-    annotations.push({ y: r, x: 0, xref: 'paper', text: `R ${r.toFixed(2)}`, showarrow: false, font: { color: '#ef4444', size: 10 }, xanchor: 'left' });
+
+  tvCandleSeries = tvChart.addCandlestickSeries({
+    upColor: '#10b981', downColor: '#ef4444',
+    borderUpColor: '#10b981', borderDownColor: '#ef4444',
+    wickUpColor: '#10b981', wickDownColor: '#ef4444',
   });
+  tvCandleSeries.setData(data.map(d => ({
+    time: dateToTs(d.date), open: d.open, high: d.high, low: d.low, close: d.close,
+  })));
 
-  // Entry / Stop / Target lines
-  if (plan.entry) {
-    shapes.push({ type: 'line', y0: plan.entry, y1: plan.entry, x0: 0, x1: 1, xref: 'paper', line: { color: '#3b82f6', width: 2, dash: 'dash' } });
-    annotations.push({ y: plan.entry, x: 1, xref: 'paper', text: `Entry ${plan.entry.toFixed(2)}`, showarrow: false, font: { color: '#3b82f6', size: 11 }, xanchor: 'right' });
-  }
-  if (plan.stop) {
-    shapes.push({ type: 'line', y0: plan.stop, y1: plan.stop, x0: 0, x1: 1, xref: 'paper', line: { color: '#ef4444', width: 2, dash: 'dash' } });
-    annotations.push({ y: plan.stop, x: 1, xref: 'paper', text: `Stop ${plan.stop.toFixed(2)}`, showarrow: false, font: { color: '#ef4444', size: 11 }, xanchor: 'right' });
-  }
-  if (plan.target) {
-    shapes.push({ type: 'line', y0: plan.target, y1: plan.target, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 2, dash: 'dash' } });
-    annotations.push({ y: plan.target, x: 1, xref: 'paper', text: `Target ${plan.target.toFixed(2)}`, showarrow: false, font: { color: '#10b981', size: 11 }, xanchor: 'right' });
-  }
+  tvMa20Series = tvChart.addLineSeries({ color: '#f97316', lineWidth: 1, title: 'MA20' });
+  tvMa20Series.setData(data.filter(d => d.ma20 != null).map(d => ({ time: dateToTs(d.date), value: d.ma20 })));
 
-  // Pattern zone highlighting
-  if (pattern?.zone) {
-    const z = pattern.zone;
-    const zColor = pattern.bias === 'Bullish' ? 'rgba(16,185,129,0.08)' : pattern.bias === 'Bearish' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)';
-    const zBorder = pattern.bias === 'Bullish' ? 'rgba(16,185,129,0.3)' : pattern.bias === 'Bearish' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)';
+  tvMa50Series = tvChart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'MA50' });
+  tvMa50Series.setData(data.filter(d => d.ma50 != null).map(d => ({ time: dateToTs(d.date), value: d.ma50 })));
 
-    if (z.type === 'consolidation' || z.type === 'deadcat') {
-      const x0 = data[Math.max(0, z.startIdx)]?.date || dates[0];
-      const x1 = data[Math.min(data.length - 1, z.endIdx)]?.date || dates[dates.length - 1];
-      shapes.push({ type: 'rect', x0, x1, y0: z.low, y1: z.high || z.bounceHigh || z.low * 1.02, fillcolor: zColor, line: { color: zBorder, width: 1, dash: 'dot' } });
-      annotations.push({ x: x0, y: z.high || z.bounceHigh || z.low * 1.02, text: pattern.name, showarrow: false, font: { color: zBorder.replace('0.3', '0.8'), size: 11 }, xanchor: 'left', yanchor: 'bottom' });
-    }
-    if (z.type === 'double_bottom' && z.neckline) {
-      shapes.push({ type: 'line', y0: z.low, y1: z.low, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 1.5, dash: 'dashdot' } });
-      shapes.push({ type: 'line', y0: z.neckline, y1: z.neckline, x0: 0, x1: 1, xref: 'paper', line: { color: '#10b981', width: 1, dash: 'dot' } });
-      annotations.push({ y: z.low, x: 0.5, xref: 'paper', text: `Double Bottom $${z.low.toFixed(2)}`, showarrow: false, font: { color: '#10b981', size: 10 } });
-    }
-    if (z.type === 'double_top' && z.neckline) {
-      shapes.push({ type: 'line', y0: z.high, y1: z.high, x0: 0, x1: 1, xref: 'paper', line: { color: '#ef4444', width: 1.5, dash: 'dashdot' } });
-      shapes.push({ type: 'line', y0: z.neckline, y1: z.neckline, x0: 0, x1: 1, xref: 'paper', line: { color: '#ef4444', width: 1, dash: 'dot' } });
-      annotations.push({ y: z.high, x: 0.5, xref: 'paper', text: `Double Top $${z.high.toFixed(2)}`, showarrow: false, font: { color: '#ef4444', size: 10 } });
-    }
-    if ((z.type === 'breakout' || z.type === 'breakdown') && z.level) {
-      const bColor = z.type === 'breakout' ? '#10b981' : '#ef4444';
-      shapes.push({ type: 'line', y0: z.level, y1: z.level, x0: 0, x1: 1, xref: 'paper', line: { color: bColor, width: 2, dash: 'dashdot' } });
-      annotations.push({ y: z.level, x: 0.5, xref: 'paper', text: `${pattern.name} $${z.level.toFixed(2)}`, showarrow: false, font: { color: bColor, size: 11 } });
-    }
+  applyChartOverlays();
+  new ResizeObserver(() => { if (tvChart) tvChart.applyOptions({ width: container.clientWidth }); }).observe(container);
+  tvChart.timeScale().fitContent();
+}
+
+function applyChartOverlays() {
+  if (!tvCandleSeries || !tvChartState.data) return;
+  const { supports, resistances, plan, signals } = tvChartState;
+  const showSignals = document.getElementById('chk-signals')?.checked ?? true;
+  const showLevels = document.getElementById('chk-levels')?.checked ?? true;
+  const showSR = document.getElementById('chk-sr')?.checked ?? true;
+
+  if (tvCandleSeries._pls) {
+    tvCandleSeries._pls.forEach(pl => { try { tvCandleSeries.removePriceLine(pl); } catch(_){} });
   }
+  tvCandleSeries._pls = [];
 
-  Plotly.newPlot('chart', traces, {
-    title: `${ticker} — Market Structure`,
-    paper_bgcolor: '#1a1f2e', plot_bgcolor: '#1a1f2e',
-    font: { color: '#e2e4e9' },
-    xaxis: { rangeslider: { visible: false }, gridcolor: '#252b3b' },
-    yaxis: { title: 'Price ($)', gridcolor: '#252b3b' },
-    shapes, annotations,
-    height: 500, margin: { l: 55, r: 55, t: 45, b: 35 },
-    legend: { orientation: 'h', y: 1.12 },
-  }, { responsive: true });
+  if (showSR) {
+    supports.slice(-4).forEach(s => {
+      tvCandleSeries._pls.push(tvCandleSeries.createPriceLine({
+        price: s, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'S ' + s.toFixed(0),
+      }));
+    });
+    resistances.slice(-4).forEach(r => {
+      tvCandleSeries._pls.push(tvCandleSeries.createPriceLine({
+        price: r, color: '#ef4444', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'R ' + r.toFixed(0),
+      }));
+    });
+  }
+  if (showLevels) {
+    if (plan.entry) tvCandleSeries._pls.push(tvCandleSeries.createPriceLine({ price: plan.entry, color: '#3b82f6', lineWidth: 2, lineStyle: 1, axisLabelVisible: true, title: 'Entry' }));
+    if (plan.stop) tvCandleSeries._pls.push(tvCandleSeries.createPriceLine({ price: plan.stop, color: '#ef4444', lineWidth: 2, lineStyle: 1, axisLabelVisible: true, title: 'Stop' }));
+    if (plan.target) tvCandleSeries._pls.push(tvCandleSeries.createPriceLine({ price: plan.target, color: '#10b981', lineWidth: 2, lineStyle: 1, axisLabelVisible: true, title: 'Target' }));
+  }
+  if (showSignals && signals && signals.length) {
+    const markers = signals.map(s => ({ time: dateToTs(s.time), position: s.position, color: s.color, shape: s.shape, text: s.text, size: s.size || 1 }));
+    markers.sort((a, b) => a.time - b.time);
+    tvCandleSeries.setMarkers(markers);
+  } else {
+    tvCandleSeries.setMarkers([]);
+  }
+}
+
+function chartToggles() { applyChartOverlays(); }
+
+// ─── Live Update Engine ───
+const LiveEngine = {
+  intervalId: null,
+  isLive: false,
+  lastFetch: 0,
+  ticker: null,
+  cachedData: null,
+  cachedInsider: null,
+  cachedInsiderSentiment: null,
+  pollMs: 15000, // 15 seconds default
+
+  getPollInterval() {
+    const intv = $('interval').value;
+    // Faster polling for shorter timeframes
+    if (['1m', '5m'].includes(intv)) return 10000;
+    if (['15m', '30m', '1h'].includes(intv)) return 20000;
+    return 30000; // daily/weekly
+  },
+
+  start() {
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.isLive = true;
+    this.pollMs = this.getPollInterval();
+    this.updateStatus('live');
+    this.intervalId = setInterval(() => this.poll(), this.pollMs);
+    console.log(`Live updates started (${this.pollMs / 1000}s interval)`);
+  },
+
+  stop() {
+    if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+    this.isLive = false;
+    this.updateStatus('off');
+    console.log('Live updates stopped');
+  },
+
+  updateStatus(status) {
+    const el = $('live-status');
+    const label = $('live-label');
+    el.className = 'live-indicator ' + status;
+    if (status === 'live') label.textContent = 'Live';
+    else if (status === 'delayed') label.textContent = 'Delayed';
+    else label.textContent = 'Offline';
+  },
+
+  updateTimestamp() {
+    const now = new Date();
+    $('last-update').textContent = `Last update: ${now.toLocaleTimeString()}`;
+  },
+
+  async poll() {
+    if (!this.isLive) return;
+    const ticker = $('ticker').value.trim().toUpperCase();
+    if (!ticker) return;
+
+    // Throttle: don't fetch if less than 8s since last fetch
+    if (Date.now() - this.lastFetch < 8000) return;
+
+    try {
+      const period = $('period').value;
+      const interval = $('interval').value;
+      const newData = await fetchStockData(ticker, period, interval);
+
+      if (!newData.length) return;
+
+      // Smart merge: update last candle or append new ones
+      if (this.cachedData && this.cachedData.length && this.ticker === ticker) {
+        const lastCached = this.cachedData[this.cachedData.length - 1];
+        const lastNew = newData[newData.length - 1];
+
+        if (lastCached.date === lastNew.date) {
+          // Same candle — update in place
+          this.cachedData[this.cachedData.length - 1] = lastNew;
+        } else {
+          // New candle(s) — append
+          const newCandles = newData.filter(d => d.date > lastCached.date);
+          this.cachedData.push(...newCandles);
+          // Keep reasonable size
+          if (this.cachedData.length > 500) this.cachedData = this.cachedData.slice(-500);
+        }
+      } else {
+        this.cachedData = newData;
+        this.ticker = ticker;
+      }
+
+      this.lastFetch = Date.now();
+      this.updateStatus('live');
+      this.updateTimestamp();
+
+      // Re-run full analysis on updated data (silent — no loading spinner)
+      await this.silentAnalyze(ticker);
+    } catch (e) {
+      console.warn('Live poll failed:', e.message);
+      this.updateStatus('delayed');
+      // Keep last known data — don't clear
+    }
+  },
+
+  async silentAnalyze(ticker) {
+    if (!this.cachedData || this.cachedData.length < 20) return;
+
+    const data = this.cachedData;
+    const accountSize = parseFloat($('account-size').value) || 10000;
+    const riskPct = parseFloat($('risk-pct').value) || 1.5;
+
+    const ma20 = computeMA(data, 'close', 20);
+    const ma50 = computeMA(data, 'close', 50);
+    data.forEach((d, i) => { d.ma20 = ma20[i]; d.ma50 = ma50[i]; });
+
+    const { highs, lows } = findPivots(data);
+    const supports = clusterLevels(lows);
+    const resistances = clusterLevels(highs);
+    const atr = calcATR(data);
+
+    const plan = generateFullPlan(data, supports, resistances, ma20, ma50, atr);
+    const pos = calcPosition(accountSize, riskPct, plan.entry, plan.stop);
+
+    // Reuse cached insider data (don't re-fetch every poll)
+    let insiderData = this.cachedInsider || { transactions: [], isMock: true };
+    let insiderSentiment = this.cachedInsiderSentiment || { score: 0, sentiment: 'Neutral' };
+
+    const newsSentiment = analyzeNewsSentiment(data);
+    const pattern = detectPatterns(data, supports, resistances);
+    const decision = makeUnifiedDecision(plan, insiderSentiment, newsSentiment, pattern);
+
+    plan.signal = decision.action;
+    if (decision.action === 'WAIT') plan.sizing = 'No trade';
+    else if (decision.confidence >= 8) plan.sizing = 'Full position (100%)';
+    else plan.sizing = 'Small position (50%)';
+
+    renderDashboard(ticker, data, supports, resistances, plan, pos, accountSize, riskPct, insiderData, insiderSentiment, newsSentiment, decision, pattern);
+    $('results').style.display = 'block';
+  }
+};
+
+function toggleLive() {
+  const checked = $('live-toggle').checked;
+  if (checked) {
+    // Must have done initial analysis first
+    if (!LiveEngine.cachedData) {
+      analyze().then(() => LiveEngine.start());
+    } else {
+      LiveEngine.start();
+    }
+  } else {
+    LiveEngine.stop();
+  }
+}
+
+function onTimeframeChange() {
+  // Stop live, clear cache, re-analyze
+  LiveEngine.stop();
+  $('live-toggle').checked = false;
+  LiveEngine.cachedData = null;
+  LiveEngine.ticker = null;
+  // Auto-adjust period for intraday
+  const intv = $('interval').value;
+  if (['1m', '5m'].includes(intv)) $('period').value = '1d';
+  else if (['15m', '30m'].includes(intv)) $('period').value = '5d';
+  else if (intv === '1h') $('period').value = '1mo';
+  // If already analyzed, re-run
+  if ($('results').style.display === 'block') analyze();
 }
 </script>
 </body>
